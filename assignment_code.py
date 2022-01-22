@@ -48,10 +48,35 @@ def get_harris_points(I, k=0.05):
     response = detA - k * traceA ** 2
 
     # step 3. Get points location(x,y)
-    points = corner_peaks(response)
+    points = corner_peaks(response,min_distance=4)
+    # points = get_coordinate(response,I.shape)
 
     return points
 
+def get_coordinate(response, image_shape,alpha=5000):
+    # sort with flattern mode
+    sortedIndex = np.argsort(response,axis=None)[::-1]
+
+    # maxIndes are index of flattern array
+    maxIndexes = sortedIndex[0:alpha]
+
+    # generate points coordinates
+    # consider image as coordianate in place m x n
+    # each point coordnate is (m', n')
+    # m' * n + n' = flatterned index
+    m = image_shape[0]
+    n = image_shape[1]
+
+    points = np.zeros((2,alpha),dtype=np.int32)
+    x = np.floor(maxIndexes/n)
+    y = np.mod(maxIndexes,n)
+    points[0,:] = x
+    points[1,:] = y
+    points = points.T
+
+    # pprint(points)
+
+    return points
 
 def display_corner_points(org_img:np.ndarray, points, output_name):
     bool_arr = np.zeros(org_img.shape[:2],dtype=np.int8)
@@ -69,27 +94,4 @@ def display_corner_points(org_img:np.ndarray, points, output_name):
 
 
 if __name__ == "__main__":
-    print ("testing get_harris_points")
-
-    images = [
-        "../data/campus/sun_abslhphpiejdjmpz.jpg",
-        "../data/campus/sun_dmyfiizrhnceheac.jpg",
-        "../data/campus/sun_ahprylpgnmgqiyuz.jpg",
-        # "../data/desert/sun_afkfpfcdesbszufn.jpg",
-        # "../data/campus/sun_bxwzzaswntmwoyml.jpg",
-    ]
-
-    alpha = 5000
-    k = 0.05
-    idx = 0
-    for image in images:
-        idx +=1
-        I = cv2.imread(image)
-        points = get_harris_points(I,alpha,k)
-        output_name = f"../output/Q1.2_harris_{idx}.jpg"
-        display_corner_points(I,points,output_name)
-
-        I = cv.imread(image)
-        points = get_random_points(I,alpha)
-        output_name = f"../output/Q1.2_random_{idx}.jpg"
-        display_corner_points(I,points,output_name)
+    print("main")

@@ -132,3 +132,4 @@ dmypy.json
 .venv
 adobe_panoramas/
 data/
+output/
