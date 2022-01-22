@@ -131,3 +131,4 @@ dmypy.json
 # project content
 .venv
 adobe_panoramas/
+data/
