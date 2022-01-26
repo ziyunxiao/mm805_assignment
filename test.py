@@ -1,42 +1,18 @@
-import assignment_code as ac
 import numpy as np
-from pprint import pprint
 import cv2
-from skimage.feature import corner_harris, corner_peaks, corner_subpix
+from imutils import paths
+import matplotlib.pyplot as plt
 
-def test1():
-    I = np.zeros((5, 5))
-    I[2:4, 2:4] = 1
-    points = ac.get_harris_points(I)
-    pprint(points)
+from assignment_code import knn_match_sift
 
+def test_knn_match():
+    print("test_knn_match")
+    img_name1 = './data/office/office-00.png'
+    img_name2 = './data/office/office-01.png'
 
-def test2():
-    print ("testing get_harris_points")
+    img1 = cv2.imread(img_name1,cv2.IMREAD_GRAYSCALE) 
+    img2 = cv2.imread(img_name2,cv2.IMREAD_GRAYSCALE)
 
-    images = [
-        "data/carmel/carmel-00.png",
-        "data/carmel/carmel-01.png",
-        "data/office/office-00.png",
-        "data/office/office-01.png",
-    ]
+    knn_match_sift(img1,img2)
 
-    idx = 0
-    for image in images:
-        idx +=1
-        I = cv2.imread(image)
-        grey = cv2.cvtColor(I, cv2.COLOR_BGR2GRAY)
-        grey = grey / 255.0
-
-        points = ac.get_harris_points(grey)
-        output_name = f"./output/test_harris_{idx}.jpg"
-        ac.display_corner_points(I,points,output_name)
-
-        points2 = corner_peaks(corner_harris(grey), min_distance=4)
-        output_name = f"./output/test2_harris_{idx}.jpg"
-        ac.display_corner_points(I,points2,output_name)
-
-        print(f" {points.shape} - {points2.shape}")
-
-# test
-test2()
+test_knn_match()    
