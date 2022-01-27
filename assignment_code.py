@@ -209,7 +209,44 @@ def knn_match(img1,img2,descriptor='sift',show_limit=100):
     plt.show()
 
 
-def feature_match_by_tracking(image_folder,points_show=50,min_threshold=10):
+# 1c
+def get_pre_points(pre_gray,n):
+    pre_points = cv2.goodFeaturesToTrack(pre_gray,n,0.01,10)
+    pre_points = np.array(pre_points,dtype='float32')
+    kp1 = list()
+    for j in range(n):
+        d = cv2.KeyPoint()
+        d.pt = pre_points[j][0]
+        d.size = 31.0
+        kp1.append(d)
+    return(pre_points,kp1)
+
+def get_new_points(pre_gray,new_gray,pre_points):
+    new_points, status, err = cv2.calcOpticalFlowPyrLK(pre_gray,
+    new_gray,pre_points,None,maxLevel=2)
+
+    n = pre_points.shape[0]
+    # show matching
+    # convert format to keypoints
+    kp2 = list()
+    matches = list()
+    for j in range(n):
+        good = status[j,0]
+
+        d = cv2.KeyPoint()
+        d.pt = new_points[j,0]
+        d.size = 31
+        kp2.append(d)
+
+        if good != 0:
+            m = cv2.DMatch()
+            m.queryIdx = j
+            m.trainIdx = j
+            matches.append(m)
+
+    return (new_points,kp2,matches)
+
+def feature_match_by_tracking(image_folder,points_show=50,min_threshold=40):
     print("[INFO] loading images...")
     imagePaths = sorted(list(paths.list_images(image_folder)))
     images = []
@@ -223,54 +260,40 @@ def feature_match_by_tracking(image_folder,points_show=50,min_threshold=10):
     n = 100
     pre_img  = images[0]
     pre_gray = cv2.cvtColor(pre_img,cv2.COLOR_BGR2GRAY)
-    pre_points = cv2.goodFeaturesToTrack(pre_gray,n,0.01,10)
-    pre_points = np.array(pre_points,dtype='float32')
-    kp1 = list()
-    for j in range(n):
-        d = cv2.KeyPoint()
-        d.pt = pre_points[j][0]
-        d.size = 31.0
-        kp1.append(d)
-
+    (pre_points, kp1) = get_pre_points(pre_gray,n)
+    
     for i in range(1,len(images)):
         new_img  = images[i]
         new_gray = cv2.cvtColor(new_img,cv2.COLOR_BGR2GRAY)
 
-        new_points, status, err = cv2.calcOpticalFlowPyrLK(pre_gray,
-            new_gray,pre_points,None,maxLevel=1)
-        # new_points, status, err = cv2.calcOpticalFlowPyrLK(pre_gray,
-        #     new_gray,pre_points,None,maxLevel=1,
-        #     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,15,0.08))
+        (new_points,kp2,matches) = get_new_points(pre_gray,new_gray,pre_points)
+        m = len(matches)
+        
+        print(f"frame {i}: good points {m}")
 
-        pprint(new_points.shape)
+        if m < min_threshold:
+            # todo recalculate points
+            # recalulate pre_points
+            print(f"good points is lower than {min_threshold}, recalculating...")
+            (pre_points, kp1) = get_pre_points(pre_gray,n)
+            (new_points,kp2,matches) = get_new_points(pre_gray,new_gray,pre_points)
 
-        # show matching
-        # convert format to keypoints
-        kp2 = list()
-        matches1to2 = list()
-        for j in range(n):
-            d = cv2.KeyPoint()
-            d.pt = new_points[j][0]
-            d.size = 31
-            kp2.append(d)
-
-            m = cv2.DMatch()
-            m.queryIdx = j
-            m.trainIdx = j
-            matches1to2.append(m)
 
         img3 = cv2.drawMatches(pre_img,kp1,new_img,kp2,\
-            matches1to2[:points_show], None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+            matches[:points_show], None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
 
         plt.figure(figsize=(15, 10))
         plt.imshow(img3)
-        plt.title('sift')
+        plt.title('feature match by tracking')
         plt.show()
 
         pre_img = new_img.copy()
         pre_points = new_points.copy()
         pre_gray = new_gray.copy()
         kp1 = kp2.copy()
+
+image_folder = './data/cave_3'
+feature_match_by_tracking(image_folder,50,40)
 
 
 
