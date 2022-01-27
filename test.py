@@ -3,7 +3,7 @@ import cv2
 from imutils import paths
 import matplotlib.pyplot as plt
 
-from assignment_code import knn_match_sift
+from assignment_code import knn_match
 
 def test_knn_match():
     print("test_knn_match")
@@ -13,6 +13,6 @@ def test_knn_match():
     img1 = cv2.imread(img_name1,cv2.IMREAD_GRAYSCALE) 
     img2 = cv2.imread(img_name2,cv2.IMREAD_GRAYSCALE)
 
-    knn_match_sift(img1,img2)
+    knn_match(img1,img2,'sift')
 
 test_knn_match()    

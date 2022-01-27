@@ -136,12 +136,8 @@ def BF_match_sift(img1,img2):
     plt.title('sift')
     plt.show()
 
-def euclidean_distance(hist1, hist2):
-    distance = np.linalg.norm(hist1-hist2)
-    return distance
-
 def knn_match(img1,img2,descriptor='sift',show_limit=100):
-    '''Based on OpenCV example code'''
+    '''Only support sift and orb as descriptor'''
 
     # Initiate SIFT detector
     if descriptor == 'sift':
@@ -183,16 +179,29 @@ def knn_match(img1,img2,descriptor='sift',show_limit=100):
 
         # add to matches
         matches.append(d_list)
-
+    
     matches = np.array(matches)
-    pprint(matches.shape)
+    r1 = matches.shape[0]
 
+    
     good = []
+    dis_values = list()    
     for m,n in matches:
         if m.distance < 0.75*n.distance:
             good.append([m])
-    # cv2.drawMatchesKnn expects list of lists as matches.
-    img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good[:show_limit],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+            dis_values.append(m.distance)
+    
+    r2 = len(good)
+    print(f"Descriptor {descriptor} detects {r1} points and {r2} points are good")
+
+    # sort good 
+    sorted_idx = np.argsort(dis_values)[:show_limit]
+    good_show = []
+    for idx in sorted_idx:
+        good_show.append(good[idx])
+    
+    # Display result on plot
+    img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good_show,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     plt.figure(figsize=(15, 10))
     plt.imshow(img3)
     plt.title(descriptor)
