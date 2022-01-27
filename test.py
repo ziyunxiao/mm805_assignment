@@ -3,7 +3,7 @@ import cv2
 from imutils import paths
 import matplotlib.pyplot as plt
 
-from assignment_code import knn_match
+from assignment_code import knn_match, feature_match_by_tracking
 
 def test_knn_match():
     print("test_knn_match")
@@ -15,4 +15,6 @@ def test_knn_match():
 
     knn_match(img1,img2,'sift')
 
-test_knn_match()    
+# test_knn_match()    
+image_folder = './data/cave_3'
+feature_match_by_tracking(image_folder,50,10)

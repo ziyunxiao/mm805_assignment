@@ -5,6 +5,7 @@ from scipy import ndimage
 from skimage.feature import corner_peaks
 from sklearn.metrics import pairwise_distances
 import matplotlib.pyplot as plt
+from imutils import paths
 
 
 def imfilter(I, filter)->np.ndarray:
@@ -21,7 +22,7 @@ def get_harris_points(I, k=0.05):
         I = I / 255.0
 
     # Step 1 calcualte Axx, Axy and Ayy
-    
+
     # Step 1.1 calculate Ix, Iy
     # apply soble filter for quick calculation
     filter_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / \
@@ -83,17 +84,17 @@ def get_coordinate(response, image_shape,alpha=5000):
 def display_corner_points(org_img:np.ndarray, points, output_name):
     bool_arr = np.zeros(org_img.shape[:2],dtype=np.int8)
     bool_arr = np.bool8(bool_arr)
-    
+
     # pprint(bool_arr)
     for (x,y) in points:
         bool_arr[x,y] = True
-    
+
     # pprint(bool_arr)
     org_img[bool_arr]=[0,0,255]
     cv2.imwrite(output_name, org_img)
 
 def BF_match_orb(img1, img2):
-    ''' based on open_cv example code '''    
+    ''' based on open_cv example code '''
     # Initiate ORB detector
     orb = cv2.ORB_create()
     # find the keypoints and descriptors with ORB
@@ -112,7 +113,7 @@ def BF_match_orb(img1, img2):
     plt.imshow(img3)
     plt.title('orb')
     plt.show()
-   
+
 
 def BF_match_sift(img1,img2):
     '''Based on OpenCV example code'''
@@ -144,7 +145,7 @@ def knn_match(img1,img2,descriptor='sift',show_limit=100):
         sift = cv2.SIFT_create()
         # find the keypoints and descriptors with SIFT
         # descriptors are 128 dimention histogram,
-        # to compare descriptors using Knn 
+        # to compare descriptors using Knn
         kp1, des1 = sift.detectAndCompute(img1,None)
         kp2, des2 = sift.detectAndCompute(img2,None)
     elif descriptor == 'orb':
@@ -157,11 +158,11 @@ def knn_match(img1,img2,descriptor='sift',show_limit=100):
         print(f"Unsupported descriptor {descriptor}")
         return
 
-    # KNN match 
+    # KNN match
     k = 2
     m = des1.shape[0]
     n = des2.shape[0]
-    
+
     matches = list()
     dis_list = pairwise_distances(des1,des2,metric='euclidean')
     for i in range(m):
@@ -179,33 +180,101 @@ def knn_match(img1,img2,descriptor='sift',show_limit=100):
 
         # add to matches
         matches.append(d_list)
-    
+
     matches = np.array(matches)
     r1 = matches.shape[0]
 
-    
+
     good = []
-    dis_values = list()    
+    dis_values = list()
     for m,n in matches:
         if m.distance < 0.75*n.distance:
             good.append([m])
             dis_values.append(m.distance)
-    
+
     r2 = len(good)
     print(f"Descriptor {descriptor} detects {r1} points and {r2} points are good")
 
-    # sort good 
+    # sort good
     sorted_idx = np.argsort(dis_values)[:show_limit]
     good_show = []
     for idx in sorted_idx:
         good_show.append(good[idx])
-    
+
     # Display result on plot
     img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good_show,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     plt.figure(figsize=(15, 10))
     plt.imshow(img3)
     plt.title(descriptor)
     plt.show()
+
+
+def feature_match_by_tracking(image_folder,points_show=50,min_threshold=10):
+    print("[INFO] loading images...")
+    imagePaths = sorted(list(paths.list_images(image_folder)))
+    images = []
+
+	# images to stitch list
+    for imagePath in imagePaths:
+        image = cv2.imread(imagePath)
+        images.append(image)
+
+    # it can be chagned to read mp4 if needed    
+    n = 100
+    pre_img  = images[0]
+    pre_gray = cv2.cvtColor(pre_img,cv2.COLOR_BGR2GRAY)
+    pre_points = cv2.goodFeaturesToTrack(pre_gray,n,0.01,10)
+    pre_points = np.array(pre_points,dtype='float32')
+    kp1 = list()
+    for j in range(n):
+        d = cv2.KeyPoint()
+        d.pt = pre_points[j][0]
+        d.size = 31.0
+        kp1.append(d)
+
+    for i in range(1,len(images)):
+        new_img  = images[i]
+        new_gray = cv2.cvtColor(new_img,cv2.COLOR_BGR2GRAY)
+
+        new_points, status, err = cv2.calcOpticalFlowPyrLK(pre_gray,
+            new_gray,pre_points,None,maxLevel=1)
+        # new_points, status, err = cv2.calcOpticalFlowPyrLK(pre_gray,
+        #     new_gray,pre_points,None,maxLevel=1,
+        #     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,15,0.08))
+
+        pprint(new_points.shape)
+
+        # show matching
+        # convert format to keypoints
+        kp2 = list()
+        matches1to2 = list()
+        for j in range(n):
+            d = cv2.KeyPoint()
+            d.pt = new_points[j][0]
+            d.size = 31
+            kp2.append(d)
+
+            m = cv2.DMatch()
+            m.queryIdx = j
+            m.trainIdx = j
+            matches1to2.append(m)
+
+        img3 = cv2.drawMatches(pre_img,kp1,new_img,kp2,\
+            matches1to2[:points_show], None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+
+        plt.figure(figsize=(15, 10))
+        plt.imshow(img3)
+        plt.title('sift')
+        plt.show()
+
+        pre_img = new_img.copy()
+        pre_points = new_points.copy()
+        pre_gray = new_gray.copy()
+        kp1 = kp2.copy()
+
+
+
+        
 
 
 
