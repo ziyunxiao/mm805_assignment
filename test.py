@@ -2,8 +2,9 @@ import numpy as np
 import cv2
 from imutils import paths
 import matplotlib.pyplot as plt
+from assignment_code import knn_match, feature_match_by_tracking, LK_OpticalFlow
+from pprint import pprint
 
-from assignment_code import knn_match, feature_match_by_tracking
 
 def test_knn_match():
     print("test_knn_match")
@@ -15,6 +16,26 @@ def test_knn_match():
 
     knn_match(img1,img2,'sift')
 
+def test_lk_optic_flow(image_folder):
+    # image_folder = "./data/cave_3"
+    imagePaths = sorted(list(paths.list_images(image_folder)))
+    images = []
+
+    # images to stitch list
+    for imagePath in imagePaths:
+        image = cv2.imread(imagePath)
+        images.append(image)
+
+    img1 = images[0]
+    img1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
+    img2 = images[1]
+    img2 = cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)
+
+    u,v = LK_OpticalFlow(img1,img2)
+    pprint(u)
+    pprint(v)
+
 # test_knn_match()    
 image_folder = './data/cave_3'
-feature_match_by_tracking(image_folder,50,10)
+# feature_match_by_tracking(image_folder,50,10)
+test_lk_optic_flow(image_folder)

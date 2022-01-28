@@ -6,8 +6,9 @@ from skimage.feature import corner_peaks
 from sklearn.metrics import pairwise_distances
 import matplotlib.pyplot as plt
 from imutils import paths
+from scipy import signal
 
-
+# 1
 def imfilter(I, filter)->np.ndarray:
     I_f = ndimage.filters.correlate(I, weights=filter, mode='constant')
     return I_f
@@ -292,9 +293,122 @@ def feature_match_by_tracking(image_folder,points_show=50,min_threshold=40):
         pre_gray = new_gray.copy()
         kp1 = kp2.copy()
 
-image_folder = './data/cave_3'
-feature_match_by_tracking(image_folder,50,40)
 
+
+#2a Lucas-Kanade optical flow, return u, v (dx,dy)
+def LK_OpticalFlow(gray1,gray2,win_size=(3,3)):
+    '''
+    This function implements the LK optical flow without pyramid or consider as level 1 pyramid.
+    '''
+
+    # 1. apply Guassian filter to smooth the image in order to remove noise
+    I1 = cv2.GaussianBlur(gray1, win_size, 0)
+    I2 = cv2.GaussianBlur(gray2, win_size, 0)
+    m,n = win_size
+    m = m//2
+    n = n//2
+    
+    # Calculate Ix, Iy, It
+    # The filter multiple 1/4 for average result
+    filter_x = np.array([[-1,1],[-1,1]]) * 0.25
+    filter_y = np.array([[-1,-1],[1,1]]) * 0.25
+    filter_t1 = np.array([[1,1],[1,1]]) * 0.25
+    filter_t2 = np.array([[1,1],[1,1]]) * -1 * 0.25
+
+    Ix = signal.convolve2d(I1,filter_x,'same') + signal.convolve2d(I2,filter_x,'same')
+    Iy = signal.convolve2d(I1,filter_y,'same') + signal.convolve2d(I2,filter_y,'same')
+    It = signal.convolve2d(I1,filter_t1,'same') + signal.convolve2d(I2,filter_t2,'same')
+
+    # retrieve good features to track
+    points = cv2.goodFeaturesToTrack(I1,1000, 0.01,10)
+    points = np.int0(points)
+
+    #init u, v
+    u = np.zeros(gray1.shape)
+    v = np.zeros(gray1.shape)
+
+    # todo: 
+    # Calculating the u and v arrays for the good features obtained n the previous step.
+    kp = list()
+    status = list()
+    err = list()
+    for p in points:
+        y,x = p.ravel()
+
+        # calculating the derivatives for the neighbouring pixels
+        # windows size mxn        
+
+        IX = Ix[x-m:x+m+1,y-n:y+n+1].flatten()
+        IY = Iy[x-m:x+m+1,y-n:y+n+1].flatten()
+        IT = It[x-m:x+m+1,y-n:y+n+1].flatten()
+
+        # Resolve minimum least squares equation
+        # x = inverse(At dot A) dot (At dot b)
+
+        # np.concatenate((IX,IY),axis=1)
+        At = np.matrix((IX,IY))
+        A = np.matrix.transpose(At)
+        A = np.array(A)
+        At = np.array(At)
+        b = np.transpose(np.array(IT))
+
+        At_dot_A = np.dot(At,A)
+        A_inv = np.linalg.pinv(At_dot_A)
+        B = np.dot(At,b)
+
+        X = np.dot(A_inv,B)
+        u[x,y] = X[0]
+        v[x,y] = X[1]
+        if X[0] != 0 or X[1] != 0:
+            status.append(1)
+        else:
+            status.append(0)
+        kp.append(p)
+        kp.append(0)
+
+        # print(f"({x,y}): {X[0], X[1]}")
+
+    return (u, v, points, status, err)
+
+# 2b Visualize result
+def display_opitical_flow(image_folder, show_n=10, threshold = 0.5):
+    imagePaths = sorted(list(paths.list_images(image_folder)))
+    images = []
+
+    # images to stitch list
+    for imagePath in imagePaths:
+        image = cv2.imread(imagePath)
+        images.append(image)
+
+    img1 = images[0]
+    gray1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
+    n = min(len(images),show_n)+1
+    for i in range(1,n):
+        img2 = images[i]
+        gray2 = cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)
+        (u, v, points, status, err) = LK_OpticalFlow(gray1,gray2, win_size=(3,3))
+        
+        # display result
+        img = cv2.cvtColor(img1,cv2.COLOR_BGR2RGB)
+        plt.figure(figsize=(400,300))
+        plt.subplot(1,3,3)
+        plt.title('Vector plot of Optical Flow of good features')
+        plt.imshow(img)
+        for i in range(len(points)):
+            p = points[i]
+            y,x = p.ravel()
+            # only show points value > threshold
+            if status[i] == 1 and(abs(u[x,y])>threshold or abs(v[x,y])>threshold):
+                plt.arrow(y,x, v[x,y], u[x,y], width=2,head_width = 5, head_length = 5, color = 'y')
+                    
+        plt.show()
+
+        img1 = img1
+        gray1 = gray1
+
+
+
+#3
 
 
         
