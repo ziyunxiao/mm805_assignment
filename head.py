@@ -30,18 +30,56 @@ def harr_cascade_detect(harr_cascade,frame):
     # detection, inside the detection the frame data is changed with 
     # bounding box and returned
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    heads = harr_cascade.detectMultiScale(gray,scaleFactor=2,minNeighbors=5)
-
+    a = 2
+    gray = cv2.resize(gray, dsize=(0, 0), fx=1/a, fy=1/a)
+    heads = harr_cascade.detectMultiScale(gray,scaleFactor=1.3,minNeighbors=5)
+    
     for (x,y,w,h) in heads:
-        cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+        cv2.rectangle(frame,(a*x,a*y),(a*x+a*w,a*y+a*h),(255,0,0),2)
+    
+    return frame
+
+
+def harr_contour_detect(frame):
+    # detection, inside the detection the frame data is changed with 
+    # bounding box and returned
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # # Setup SimpleBlobDetector parameters.
+    # params = cv2.SimpleBlobDetector_Params()
+  	# # Filter by Circularity
+    # params.filterByCircularity = True
+    # params.minCircularity = 0.1
+
+    # detector = cv2.SimpleBlobDetector(params)
+
+    # # Detect blobs.
+    # keypoints = detector.detect(gray)
+
+    # # Draw detected blobs as red circles.
+    # # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
+    # frame = cv2.drawKeypoints(frame, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+
+    ret, thresh = cv2.threshold(gray, 70, 255, cv2.THRESH_BINARY)
+
+    contours, hierarchy = cv2.findContours(image=thresh, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
+                                     
+    # draw contours on the original image
+    cv2.drawContours(image=frame, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+                
+    # see the results
+    cv2.imshow('binary', thresh)
     
     return frame
 
 def harr_casscade_mp4():
     xml = 'haarcascade_frontalface_default.xml'
+    # xml = 'haarcascade_upperbody.xml'
 
     harr_cascade = cv2.CascadeClassifier(f'./data/cv2/{xml}')
     video_name = "cut1.mp4"
+    # cut2 does not work. 
     vid_capture = cv2.VideoCapture(f'./data/{video_name}')
 
     if (vid_capture.isOpened() == False):
@@ -62,7 +100,7 @@ def harr_casscade_mp4():
     #     cv2.VideoWriter_fourcc('M','J','P','G'), 20, frame_size)
 
     output = cv2.VideoWriter(f'./data/output_{video_name}', \
-        cv2.VideoWriter_fourcc(*'XVID'), fps, frame_size)
+        cv2.VideoWriter_fourcc(*'mp4v'), fps, frame_size)
 
 
     while(vid_capture.isOpened()):
@@ -74,6 +112,7 @@ def harr_casscade_mp4():
             # detection, inside the detection the frame data is changed with 
             # bounding box and returned
             frame = harr_cascade_detect(harr_cascade,frame)
+            # frame = harr_contour_detect(frame)
 
             cv2.imshow('Frame',frame)
             output.write(frame)
