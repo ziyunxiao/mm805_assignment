@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 
+# org video: https://www.youtube.com/watch?v=zPx5N6Lh3sw&t=1276s
 # ffmpeg -i BillGates.mp4 -ss 00:00:05 -t 00:10:00 -async 1 cut.mp4
 # ffmpeg -i cut.mp4 -vf scale=320:240 small.mp4
 
@@ -40,7 +41,7 @@ def harr_cascade_detect(harr_cascade,frame):
     return frame
 
 
-def harr_contour_detect(frame):
+def contour_detect(frame):
     # detection, inside the detection the frame data is changed with 
     # bounding box and returned
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -112,7 +113,7 @@ def harr_casscade_mp4():
             # detection, inside the detection the frame data is changed with 
             # bounding box and returned
             frame = harr_cascade_detect(harr_cascade,frame)
-            # frame = harr_contour_detect(frame)
+            # frame = contour_detect(frame)
 
             cv2.imshow('Frame',frame)
             output.write(frame)
