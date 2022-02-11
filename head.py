@@ -7,8 +7,6 @@ import cv2
 
 def harr_casscade():
     harr_cascade = cv2.CascadeClassifier('./data/cv2/haarcascade_frontalface_default.xml')
-
-
     cap = cv2.VideoCapture(0)
     while True:
         ret, img = cap.read()
@@ -77,6 +75,7 @@ def contour_detect(frame):
 def harr_casscade_mp4():
     xml = 'haarcascade_frontalface_default.xml'
     # xml = 'haarcascade_upperbody.xml'
+    # xml = 'haar_custom.xml' # from https://github.com/Pramod-Devireddy/head_detection
 
     harr_cascade = cv2.CascadeClassifier(f'./data/cv2/{xml}')
     video_name = "cut1.mp4"
