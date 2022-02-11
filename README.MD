@@ -5,7 +5,7 @@ This the notebook is for Li Bin Song's MM805 Assignment.
 
 The source code is located at [github](https://github.com/ziyunxiao/mm805_assignment.git). Or you can unzip the zip from eclass.
 
-**To see questions answers, please open report.ipynb or report.pdf for details.**
+**To see questions answers, please open report.ipynb or report.html or report.pdf for details.**
 
 ## Requirement to run this notebook
 The commands shows here are based on Linux(Ubuntu)
